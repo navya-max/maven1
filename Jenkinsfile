@@ -1,60 +1,24 @@
-@Library('samplelibrary')_
-
-pipeline
+node('built-in') 
 {
-    agent any
-    stages
+    stage('continuousdownload')
     {
-        stage('Download_Master')
-        {
-            steps
-            {
-                script
-                {
-                    cicd.gitDownload("maven")
-                }
-            }
-        }
-        stage('Build_Master')
-        {
-            steps
-            {
-                script
-                {
-                    cicd.buildArtifact()
-                }
-            }
-        }
-        stage('Deployment_Master')
-        {
-            steps
-            {
-                script
-                {
-                    cicd.deployTomcat("DeclarativePipelinewithSharedLibraries","172.31.18.248","testapp")
-                }
-            }
-        }
-        stage('Testing_Master')
-        {
-            steps
-            {
-                script
-                {
-                    cicd.gitDownload("FunctionalTesting")
-                    cicd.runSelenium("DeclarativePipelinewithSharedLibraries")
-                }
-            }
-        }
-        stage('Delivery_Master')
-        {
-            steps
-            {
-                script
-                {
-                    cicd.deployTomcat("DeclarativePipelinewithSharedLibraries","172.31.19.128","prodapp")
-                }
-            }
-        }
+        git 'https://github.com/IntelliqDevops/maven.git'
     }
-}
+    stage('continuousbuild')
+    {
+        sh 'mvn package'
+    }
+    stage('continuousdeployment')
+    {
+     sh 'scp /var/lib/jenkins/workspace/scriptedpipeline/webapp/target/webapp.war ubuntu@172.31.23.20:/var/lib/tomcat10/webapps/test1.war'   
+    }
+    stage('continuoustesting')
+    {
+        git 'https://github.com/IntelliqDevops/FunctionalTesting.git'
+        sh 'java -jar /var/lib/jenkins/workspace/scriptedpipeline/testing.jar'
+    }
+    stage('continuousdelivery')
+    {
+        sh 'scp /var/lib/jenkins/workspace/scriptedpipeline/webapp/target/webapp.war ubuntu@172.31.25.127:/var/lib/tomcat10/webapps/prodapp' 
+    }
+}    
